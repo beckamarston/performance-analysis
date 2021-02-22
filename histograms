@@ -1,0 +1,44 @@
+# Histograms for agricultural gross margin per ha ---------------------------------------
+library(ggplot2)
+
+# Basic histogram 
+ggplot(extract2018, aes(x=agriculture.gross.margin.per.ha)) + geom_histogram(binwidth=100, color="black", fill="white") + 
+  coord_cartesian(xlim = c(-10000, 10000))
+p<-ggplot(extract2018, aes(x=agriculture.gross.margin.per.ha)) + geom_histogram(binwidth=100, color="black", fill="white") + 
+  coord_cartesian(xlim = c(-10000, 10000))
+# Add mean line 
+p+ geom_vline(aes(xintercept=mean(agriculture.gross.margin.per.ha)), 
+              color="blue", linetype="dashed", size=1) 
+# Add median line 
+p+ geom_vline(aes(xintercept=median(agriculture.gross.margin.per.ha)), 
+              color="blue", linetype="dashed", size=1) 
+
+# Histogram with density plot 
+ggplot(extract2018, aes(x=agriculture.gross.margin.per.ha)) + 
+  geom_histogram(aes(y=..density..), binwidth=100, colour="black", fill="white")+  coord_cartesian(xlim = c(-10000, 10000)) +
+  
+  geom_density(alpha=.2, fill="#FF6666") 
+
+#colour coded by farm type
+# mean gross margin for farm types
+library(plyr) 
+mu <- ddply(extract2018, "type", summarise, grp.median=median(agriculture.gross.margin.per.ha)) 
+head(mu)
+
+# Change histogram plot line colours by Farm Type 
+ggplot(extract2018, aes(x=agriculture.gross.margin.per.ha, color=type)) + geom_histogram(binwidth=100, fill="white") +
+  coord_cartesian(xlim = c(-10000, 10000))
+# Overlaid histograms 
+p <- ggplot(extract2018, aes(x=agriculture.gross.margin.per.ha, color=type)) + geom_histogram(binwidth=100, fill="white", alpha=0.5, position="identity") +
+  coord_cartesian(xlim = c(-10000, 10000))
+p+ geom_vline(aes(xintercept=median(agriculture.gross.margin.per.ha)), 
+              color="blue", linetype="dashed", size=1) 
+
+mi <- ddply(extract2018, "lfa", summarise, grp.median=median(agriculture.gross.margin.per.ha)) 
+head(mi)
+# Add mean lines
+p+geom_vline(data=mi, aes(xintercept=grp.median,),
+             linetype="dashed")
+mu <- ddply(extract2018, "type", summarise, grp.mean=mean(agriculture.gross.margin.per.ha)) 
+head(mu)
+by_type <- extract2018 %>% group_by(gor)
