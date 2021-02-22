@@ -69,6 +69,7 @@ server <- function(input, output) {
     p + geom_histogram(aes(color= source), bins = input$bins, fill= "white", alpha=0.5, position="identity") +
       xlab(xlabel)+
       ylab("Number of Farms")+
+      if (input$split) {facet_wrap(~input$group) + }
       if (input$display_var == "performance.ratio") {
         coord_cartesian(xlim = c(0, 250))} 
     else if (input$display_var == "agriculture.gross.margin.per.ha") {
