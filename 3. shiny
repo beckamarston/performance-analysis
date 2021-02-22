@@ -72,7 +72,10 @@ server <- function(input, output) {
       if (input$display_var == "performance.ratio") {
         coord_cartesian(xlim = c(0, 250))} 
     else if (input$display_var == "agriculture.gross.margin.per.ha") {
-      coord_cartesian(xlim = c(-5000, 10000))} })
+      coord_cartesian(xlim = c(-5000, 10000))} 
+      
+    if(input$addmedian == TRUE) {abline(v = median(x_reactive()), col="red", lwd = 2, lty = 2)}   
+      })
     
     output$data1 <- renderText({
       xy_str <- function(e) {
