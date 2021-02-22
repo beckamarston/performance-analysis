@@ -1,0 +1,113 @@
+library(shiny)
+library(shinydashboard)
+library(ggplot2)
+
+# Define UI for application that draws a histogram---------------------------------
+ui <- fluidPage(
+  titlePanel("Distribution of Farm Performance"),
+  p("Using FBS Survey Data from 2018"),
+  
+  # Sidebar with input choices
+  sidebarLayout(
+    sidebarPanel(
+      radioButtons("display_var",
+                   "Select Variable:",
+                   choices = c("Agricultural Gross Margins per ha" = "agriculture.gross.margin.per.ha",
+                               "Performance Ratio"= "performance.ratio")), 
+      sliderInput("bins",
+                  "Select Number of Bins:",
+                  min = 10,
+                  max = 5000,
+                  value = 500),
+      selectInput("group", "Select Farm Grouping:", 
+                  choices = c("None" = FALSE,
+                              "Farm Type" = "type",
+                              "Region" = "gor",
+                              "LFA Status" = "lfa",
+                              "Tenancy Type" = "tenancy",
+                              "Farm Size" = "slrgroup")),
+      checkboxInput(inputId = "split",
+                    label = "Split Histogram into Groups:",
+                    value = FALSE),
+      checkboxInput(inputId = "addmedian",
+                    label = "Show Median:",
+                    value = FALSE)),
+    
+    # MainPanel to show a plot of the generated distribution
+    mainPanel(
+      tabsetPanel(type = "tabs",
+                tabPanel("Information",
+                         h3("Agriculture Gross Margins per ha"),
+                         p("Agriculture gross margin equals total agriculuture output less variable costs. It has been converted to £/ha units through dividing by the UAA of the farm."),
+                         h3("Performance Ratio"),
+                         p("Economic performance for each farm is measured as the ratio between economic output (mainly sales revenue) and inputs (costs); the higher the ratio, the higher the economic efficiency and performance"),
+                         p("It's included as sensitivity analysis")),
+                tabPanel("Histogram", plotOutput("distplot", click="plot_click"),
+                         verbatimTextOutput("data1")),
+                tabPanel("Cumulative Plot", plotOutput("cumplot", click="plot_click"),
+                         verbatimTextOutput("data2")),
+                tabPanel("Summary Data", verbatimTextOutput("summary"))
+    ))))
+
+  
+# Define server logic required to draw a histogram-----------------------------------
+server <- function(input, output) {
+  
+  x_reactive <- reactive({switch(input$display_var,  
+                                 "performance.ratio" = mydata3$performance.ratio,
+                                 "agriculture.gross.margin.per.ha" = mydata3$agriculture.gross.margin.per.ha)})
+
+  #histogram--------------------------------------------------------------------------------------------------
+  output$distplot <- renderPlot({
+    # set x-axis label depending on the value of display_var
+    if (input$display_var == "performance.ratio") {
+      xlabel <- "Performance Ratio"} 
+    else if (input$display_var == "agriculture.gross.margin.per.ha") {
+      xlabel <- "Agricultural Gross Margins per ha"}
+   
+    p <- ggplot(data = mydata3 %>% filter(source %in% input$group), aes_string(input$display_var)) 
+    p + geom_histogram(aes(color= source), bins = input$bins, fill= "white", alpha=0.5, position="identity") +
+      xlab(xlabel)+
+      ylab("Number of Farms")+
+      if (input$display_var == "performance.ratio") {
+        coord_cartesian(xlim = c(0, 250))} 
+    else if (input$display_var == "agriculture.gross.margin.per.ha") {
+      coord_cartesian(xlim = c(-5000, 10000))} })
+    
+    output$data1 <- renderText({
+      xy_str <- function(e) {
+        if(is.null(e)) return("NULL\n")
+        paste0("x=", round(e$x, 1),  
+               " y=", round(e$y, 1))}
+      paste0("data points: ", xy_str(input$plot_click))})
+  
+  #cumulative plot---------------------------------------------------------------------------------------
+  output$cumplot <- renderPlot({
+    if (input$display_var == "performance.ratio") {
+      xlabel <- "Performance Ratio"} 
+    else if (input$display_var == "agriculture.gross.margin.per.ha") {
+      xlabel <- "Agricultural Gross Margins per ha"}
+    
+    c <- ggplot(mydata3, aes_string(input$display_var)) 
+    c + stat_ecdf(aes(color= type), geom = "step", pad = FALSE) +
+      xlab(xlabel) +
+      ylab("Cumulative Density") +
+      if (input$display_var == "performance.ratio") {
+        coord_cartesian(xlim = c(0, 250))} 
+    else if (input$display_var == "agriculture.gross.margin.per.ha") {
+      coord_cartesian(xlim = c(-5000, 10000))} })
+  
+  output$data2 <- renderText({
+    xy_str <- function(e) {
+      if(is.null(e)) return("NULL\n")
+      paste0("x=", round(e$x, 1),  
+             " y=", round(e$y, 1))}
+    paste0("data points: ", xy_str(input$plot_click))})
+  
+  #summary stats---------------------------------------------------------------------------------
+  output$summary <- renderPrint({
+    summary(mydata3)}) 
+  }
+
+# Run the application
+shinyApp(ui = ui, server = server)
